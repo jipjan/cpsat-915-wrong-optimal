@@ -13,9 +13,11 @@ parameters gives mutually inconsistent optimality certificates:
 | C | `supply_dim_3_8 == 0` | OPTIMAL | 9'086'429 | `runC-pinned-0.log` |
 
 `supply_dim_3_8` is a Boolean, so B and C partition A's feasible set: A's optimum must be
-min(B, C) = 6'012'953, yet A certifies 9'086'429 with a matching best bound. Run B's solution
-also verifies against every row of the *unpinned* file by plain Int128 arithmetic (`Program.cs`,
-mode implied by the solve path — the checker runs after each solve in the original harness).
+min(B, C) = 6'012'953, yet A certifies 9'086'429 with a matching best bound. After every solve
+the runner independently verifies the returned solution against the **original, unpinned**
+file's rows by plain Int128 arithmetic (enforcement literals honoured, domains checked,
+objective recomputed) — run B's cheaper point passes with zero violations, so it is feasible
+in the model run A was solved on.
 
 ## Run it
 

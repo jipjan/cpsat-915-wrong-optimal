@@ -83,10 +83,52 @@ if (mode == "solve")
         proto.Constraints.Add(pin);
         Console.WriteLine($"pinned {args[3]} == {pinValue}");
     }
+    var originalRows = args.Length > 3 ? proto.Constraints.Count - 1 : proto.Constraints.Count;
     var model = new CpModel();
     model.Model.MergeFrom(proto);
     var solver = new CpSolver { StringParameters = parms == "default" ? "" : parms };
     var sw = System.Diagnostics.Stopwatch.StartNew();
     var status = solver.Solve(model);
     Console.WriteLine($"params='{parms}' -> {status} objective={solver.ObjectiveValue} bound={solver.Response.BestObjectiveBound} wall={sw.Elapsed.TotalSeconds:F1}s");
+
+    // Independent check: verify the returned solution against the ORIGINAL (unpinned) file's rows
+    // by plain Int128 arithmetic — no solver trusted. A pinned run's solution passing here proves
+    // the point is feasible in the unpinned model too.
+    if (status is CpSolverStatus.Optimal or CpSolverStatus.Feasible)
+    {
+        var solution = solver.Response.Solution;
+        int checkedRows = 0, skippedNonLinear = 0, violations = 0;
+        for (var c = 0; c < originalRows; c++)
+        {
+            var ct = proto.Constraints[c];
+            if (ct.ConstraintCase != ConstraintProto.ConstraintOneofCase.Linear) { skippedNonLinear++; continue; }
+            var enforced = true;
+            foreach (var lit in ct.EnforcementLiteral)
+                if (!(lit >= 0 ? solution[lit] == 1 : solution[~lit] == 0)) { enforced = false; break; }
+            if (!enforced) continue;
+            Int128 sum = 0;
+            for (var i = 0; i < ct.Linear.Vars.Count; i++)
+                sum += (Int128)ct.Linear.Coeffs[i] * solution[ct.Linear.Vars[i]];
+            var ok = false;
+            for (var d = 0; d + 1 < ct.Linear.Domain.Count && !ok; d += 2)
+                ok = sum >= ct.Linear.Domain[d] && sum <= ct.Linear.Domain[d + 1];
+            checkedRows++;
+            if (!ok && violations++ < 5)
+                Console.WriteLine($"VIOLATED: sum={sum} domain=[{string.Join(",", ct.Linear.Domain)}]");
+        }
+        var domainOk = true;
+        for (var i = 0; i < proto.Variables.Count && domainOk; i++)
+        {
+            var dom = proto.Variables[i].Domain;
+            var inDomain = false;
+            for (var d = 0; d + 1 < dom.Count && !inDomain; d += 2)
+                inDomain = solution[i] >= dom[d] && solution[i] <= dom[d + 1];
+            domainOk = inDomain;
+        }
+        Int128 objSum = 0;
+        for (var i = 0; i < proto.Objective.Vars.Count; i++)
+            objSum += (Int128)proto.Objective.Coeffs[i] * solution[proto.Objective.Vars[i]];
+        Console.WriteLine($"check vs unpinned file: rows checked={checkedRows} skippedNonLinear={skippedNonLinear} "
+            + $"VIOLATIONS={violations} domainsOk={domainOk} objectiveRecomputed={objSum}");
+    }
 }
