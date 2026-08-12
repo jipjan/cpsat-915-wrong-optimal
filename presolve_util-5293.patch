@@ -1,0 +1,58 @@
+diff --git a/ortools/sat/presolve_util.cc b/ortools/sat/presolve_util.cc
+index 292519d..0fb8e8e 100644
+--- a/ortools/sat/presolve_util.cc
++++ b/ortools/sat/presolve_util.cc
+@@ -591,8 +591,8 @@ int ActivityBoundHelper::RemoveEnforcementThatMakesConstraintTrivial(
+                           amo_indices_[negated_index].end());
+     ++num_enforcement_to_check;
+   }
+-  int non_amo_min_activity = 0;
+-  int non_amo_max_activity = 0;
++  int64_t non_amo_min_activity = 0;
++  int64_t non_amo_max_activity = 0;
+   auto log_work = [&]() {
+     VLOG(1) << "RemoveEnforcementThatMakesConstraintTrivial: "
+                "aborting because too expensive: "
+@@ -629,12 +629,16 @@ int ActivityBoundHelper::RemoveEnforcementThatMakesConstraintTrivial(
+     // Compute min_max activity when enf_lit is false.
+     int64_t min_activity = non_amo_min_activity;
+     int64_t max_activity = non_amo_max_activity;
++    bool aborted = false;
+     for (const int i : tmp_boolean_terms_in_some_amo_) {
+       const int ref = boolean_terms[i].first;
+       const int64_t coeff = boolean_terms[i].second;
+       // This is not supposed to happen after PresolveEnforcement(), so we
+       // just abort in this case.
+-      if (ref == enf_lit || ref == NegatedRef(enf_lit)) break;
++      if (ref == enf_lit || ref == NegatedRef(enf_lit)) {
++        aborted = true;
++        break;
++      }
+ 
+       const bool is_true = AppearInTriggeredAmo(NegatedRef(ref));
+       const bool is_false = AppearInTriggeredAmo(ref);
+@@ -642,7 +646,10 @@ int ActivityBoundHelper::RemoveEnforcementThatMakesConstraintTrivial(
+       if (work > kMaxWork) return log_work();
+ 
+       // Similarly, this is not supposed to happen after PresolveEnforcement().
+-      if (is_true && is_false) break;
++      if (is_true && is_false) {
++        aborted = true;
++        break;
++      }
+ 
+       if (is_false) continue;
+       if (is_true) {
+@@ -657,9 +664,9 @@ int ActivityBoundHelper::RemoveEnforcementThatMakesConstraintTrivial(
+       }
+     }
+ 
+-    if (Domain(min_activity, max_activity)
+-            .AdditionWith(other_terms)
+-            .IsIncludedIn(rhs)) {
++    if (!aborted && Domain(min_activity, max_activity)
++                        .AdditionWith(other_terms)
++                        .IsIncludedIn(rhs)) {
+       tmp_set_.insert(enf_lit);
+     }
+   }

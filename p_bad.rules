@@ -1,0 +1,57 @@
+'TODO linear matrix: reuse defining constraint' was applied 5 times.
+'TODO new_var_definition : use boolean equation' was applied 177 times.
+'affine: fixed' was applied 895 times.
+'affine: new relation' was applied 177 times.
+'at_most_one: removed literals' was applied 2 times.
+'at_most_one: satisfied' was applied 13 times.
+'at_most_one: transformed into max clique' was applied 1 time.
+'bool_or: always true' was applied 3 times.
+'deductions: 16574 stored' was applied 1 time.
+'duplicate: merged rhs of linear constraint' was applied 8'960 times.
+'duplicate: removed constraint' was applied 8'960 times.
+'duplicate: removed duplicated column' was applied 63'407 times.
+'duplicate: removed enforced constraint' was applied 6 times.
+'enforcement: false literal' was applied 5'866 times.
+'exactly_one: removed literals' was applied 888 times.
+'exactly_one: satisfied' was applied 163 times.
+'exactly_one: x and not(x)' was applied 9 times.
+'linear + amo: added implications' was applied 1 time.
+'linear + amo: extracted enforcement literal' was applied 5 times.
+'linear + amo: fixed literal' was applied 221 times.
+'linear + amo: fixed literal implied by enforcement' was applied 1 time.
+'linear + amo: infeasible linear constraint' was applied 3 times.
+'linear + amo: removed enforcement literal' was applied 1 time.
+'linear inclusion: redundant containing constraint' was applied 36 times.
+'linear inclusion: redundant included constraint' was applied 323 times.
+'linear inclusion: sparsify superset' was applied 36 times.
+'linear matrix: common amo rectangle' was applied 13 times.
+'linear matrix: common horizontal rectangle' was applied 5 times.
+'linear matrix: common vertical rectangle' was applied 9 times.
+'linear matrix: defining equation for common rectangle' was applied 1 time.
+'linear1: always true' was applied 10 times.
+'linear1: x in domain' was applied 21'601 times.
+'linear2: contains a boolean' was applied 6 times.
+'linear2: convert ax + by != cte to clauses' was applied 1'634 times.
+'linear: always true' was applied 13'640 times.
+'linear: divide by GCD' was applied 10'738 times.
+'linear: doubleton free' was applied 1 time.
+'linear: empty' was applied 744 times.
+'linear: extracted at most one (max)' was applied 6 times.
+'linear: extracted at most one (min)' was applied 6 times.
+'linear: fixed or dup variables' was applied 945 times.
+'linear: negative equal one' was applied 1'312 times.
+'linear: positive equal one' was applied 57 times.
+'linear: reduced variable domains' was applied 772 times.
+'linear: reduced variable domains in derived constraint' was applied 98 times.
+'linear: remapped using affine relations' was applied 111 times.
+'linear: simplify using approximate gcd' was applied 6 times.
+'linear: singleton column' was applied 18 times.
+'linear: variable substitution 0' was applied 1 time.
+'linear: variable substitution 1' was applied 2 times.
+'new_bool: with clause' was applied 13 times.
+'objective: detected equivalence' was applied 897 times.
+'presolve: 81150 unused variables removed.' was applied 1 time.
+'presolve: iteration' was applied 3 times.
+'setppc: exactly_one included in linear' was applied 26 times.
+'setppc: reduced linear coefficients' was applied 26 times.
+'variables: linear1 with domain not included in variable domain' was applied 4 times.

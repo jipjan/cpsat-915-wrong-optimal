@@ -65,6 +65,104 @@ if (mode == "names")
     return;
 }
 
+if (mode == "compact")
+{
+    Compact.Run(proto, args[2]);
+    return;
+}
+
+if (mode == "reduce")
+{
+    Reduce.Run(proto, budgetMinutes: int.Parse(args[2]), seconds: int.Parse(args[3]));
+    return;
+}
+
+if (mode == "savehint")
+{
+    var pi = -1;
+    for (var i = 0; i < proto.Variables.Count; i++)
+        if (proto.Variables[i].Name == "supply_dim_3_8") { pi = i; break; }
+    var row = new ConstraintProto { Linear = new LinearConstraintProto() };
+    row.Linear.Vars.Add(pi); row.Linear.Coeffs.Add(1);
+    row.Linear.Domain.Add(1); row.Linear.Domain.Add(1);
+    proto.Constraints.Add(row);
+    var mm = new CpModel();
+    mm.Model.MergeFrom(proto);
+    var ss = new CpSolver { StringParameters = "num_search_workers:1,random_seed:1" };
+    var stt = ss.Solve(mm);
+    Console.WriteLine($"pinned -> {stt} objective={ss.ObjectiveValue}");
+    File.WriteAllLines("hint.txt", ss.Response.Solution.Select(v => v.ToString()));
+    return;
+}
+
+if (mode == "probe")
+{
+    // Exit code 0 = hint survived presolve; non-zero (CHECK failure) = presolve broke it.
+    var vals = File.ReadAllLines("hint.txt").Select(long.Parse).ToArray();
+    proto.SolutionHint = new PartialVariableAssignment();
+    for (var i = 0; i < vals.Length; i++) { proto.SolutionHint.Vars.Add(i); proto.SolutionHint.Values.Add(vals[i]); }
+    var mm = new CpModel();
+    mm.Model.MergeFrom(proto);
+    var ops = args[2];
+    var ss = new CpSolver
+    {
+        StringParameters = "num_search_workers:1,random_seed:1,log_search_progress:true,"
+                         + "debug_crash_if_presolve_breaks_hint:true,max_time_in_seconds:40,"
+                         + $"debug_max_num_presolve_operations:{ops}",
+    };
+    var stt = ss.Solve(mm);
+    Console.WriteLine($"ops={ops} -> {stt} SURVIVED");
+    return;
+}
+
+if (mode == "diag")
+{
+    // Step 1: solve the PINNED model to obtain the true optimum's full assignment.
+    var pinIdx = -1;
+    for (var i = 0; i < proto.Variables.Count; i++)
+        if (proto.Variables[i].Name == "supply_dim_3_8") { pinIdx = i; break; }
+    var pinRow = new ConstraintProto { Linear = new LinearConstraintProto() };
+    pinRow.Linear.Vars.Add(pinIdx);
+    pinRow.Linear.Coeffs.Add(1);
+    pinRow.Linear.Domain.Add(1);
+    pinRow.Linear.Domain.Add(1);
+
+    var pinnedProto = proto.Clone();
+    pinnedProto.Constraints.Add(pinRow);
+    var pinnedModel = new CpModel();
+    pinnedModel.Model.MergeFrom(pinnedProto);
+    var s1 = new CpSolver { StringParameters = "num_search_workers:1,random_seed:1" };
+    var st1 = s1.Solve(pinnedModel);
+    Console.WriteLine($"[1] pinned solve -> {st1} objective={s1.ObjectiveValue}");
+    if (st1 is not (CpSolverStatus.Optimal or CpSolverStatus.Feasible)) return;
+    var good = s1.Response.Solution.ToArray();
+
+    // Step 2: feed that assignment to the UNPINNED model as a complete hint, and ask CP-SAT
+    // to report the presolve operation that makes the hint infeasible.
+    var hinted = proto.Clone();
+    hinted.SolutionHint = new PartialVariableAssignment();
+    for (var i = 0; i < good.Length; i++)
+    {
+        hinted.SolutionHint.Vars.Add(i);
+        hinted.SolutionHint.Values.Add(good[i]);
+    }
+    var m2 = new CpModel();
+    m2.Model.MergeFrom(hinted);
+    var extra = args.Length > 2 ? args[2] : "";
+    var s2 = new CpSolver
+    {
+        StringParameters = "num_search_workers:1,random_seed:1,log_search_progress:true,"
+                         + "debug_crash_if_presolve_breaks_hint:true," + extra,
+    };
+    s2.StringParameters += "";
+    var log = new System.Text.StringBuilder();
+    s2.SetLogCallback(line => { log.AppendLine(line); });
+    var st2 = s2.Solve(m2);
+    File.WriteAllText("diag.log", log.ToString());
+    Console.WriteLine($"[2] unpinned+hint -> {st2} objective={s2.ObjectiveValue} (log in diag.log)");
+    return;
+}
+
 if (mode == "solve")
 {
     var parms = args[2];
